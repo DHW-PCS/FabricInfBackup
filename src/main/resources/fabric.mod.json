@@ -9,12 +9,11 @@
     "InitAuther97"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "",
+    "sources": "https://github.com/InitAuther97/FabricInfBackup"
   },
 
   "license": "CC0-1.0",
-  "icon": "",
 
   "environment": "*",
   "entrypoints": {
