@@ -4,9 +4,13 @@
   "package": "org.dhwpcs.inf_backup.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "StorageIoWorkerAccessor"
+    "StorageIoWorkerAccessor",
+    "MinecraftServerMixin"
   ],
   "client": [
+  ],
+  "server": [
+    "DedicatedServerWatchdogMixin"
   ],
   "injectors": {
     "defaultRequire": 1
