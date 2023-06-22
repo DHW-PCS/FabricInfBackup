@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "org.dhwpcs.inf_backup.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "StorageIoWorkerAccessor"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
