@@ -17,9 +17,12 @@ jobs:
     steps:
       - name: checkout repository
         uses: actions/checkout@v2
-      - name: change proprties
+      - name: change proprties linux
         if: ${{ runner.os != 'Windows' }}
         run: rm gradle.properties && mv gradle.action.properties gradle.properties
+      - name: change proprties windows
+        if: ${{ runner.os != 'Linux' }}
+        run: del gradle.properties && ren gradle.action.properties gradle.properties
       - name: validate gradle wrapper
         uses: gradle/wrapper-validation-action@v1
       - name: setup jdk ${{ matrix.java }}
