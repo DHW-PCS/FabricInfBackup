@@ -40,6 +40,32 @@ public class FabricEntrypoint implements ModInitializer {
     public SortedSet<Pair<Path, BackupInfo>> infos = new TreeSet<>(Backup.COMPARATOR);
     public Map<String, LastOperation> operationToConfirm = new HashMap<>();
 
+    private static final List<String> helpInfo = List.of(
+            "Inf-Backup version " + Backup.VERSION,
+            "Made by InitAuther97",
+            "Commands:",
+            " - /backup create <beginPosX> <beginPosY> <endPosX> <endPosY> <description> [<dimension>]",
+            "      Used to create a backup. Begin and end pos is the position of the chunk in the world.",
+            "      The dimension argument is default to the dimension you are in.",
+            " - /backup rollback <slot>",
+            "      Add a pending rollback to the wait list. When the server shuts down, it will be applied.",
+            "      Obtain the slot by /backup list",
+            " - /backup list",
+            "      List all the saves created, or to be applied. The number is the slot number.",
+            " - /backup cancel <slot>",
+            "      Cancel the rollback request in the specified slot in the list to apply.",
+            "      Obtain the slot by /backup list",
+            " - /backup cancel all",
+            "      Cancel all the rollback request.",
+            " - /backup delete <slot>",
+            "      Delete the save in the specified slot.",
+            "      After executing, it requires a confirmation to continue.",
+            " - /backup confirm <result: true|false>",
+            "      Decide whether to confirm on the result.",
+            " - /backup confirm info",
+            "      Check out which operation is waiting for confirmation."
+    );
+
     @Override
     public void onInitialize() {
         ServerLifecycleEvents.SERVER_STARTED.register(it -> {
@@ -57,9 +83,9 @@ public class FabricEntrypoint implements ModInitializer {
                     .executes(this::printUsage)
                     .then(LiteralArgumentBuilder.<ServerCommandSource>literal("create")
                             .then(RequiredArgumentBuilder.<ServerCommandSource, Integer>argument("beginPosX", IntegerArgumentType.integer())
-                                    .then(RequiredArgumentBuilder.<ServerCommandSource, Integer>argument("beginPosY",IntegerArgumentType.integer())
+                                    .then(RequiredArgumentBuilder.<ServerCommandSource, Integer>argument("beginPosY", IntegerArgumentType.integer())
                                             .then(RequiredArgumentBuilder.<ServerCommandSource, Integer>argument("endPosX", IntegerArgumentType.integer())
-                                                    .then(RequiredArgumentBuilder.<ServerCommandSource, Integer>argument("endPosY",IntegerArgumentType.integer())
+                                                    .then(RequiredArgumentBuilder.<ServerCommandSource, Integer>argument("endPosY", IntegerArgumentType.integer())
                                                             .then(RequiredArgumentBuilder.<ServerCommandSource, String>argument("description", StringArgumentType.string())
                                                                     .executes(this::createBackup)
 
@@ -95,17 +121,17 @@ public class FabricEntrypoint implements ModInitializer {
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(it -> {
             operationToConfirm.clear();
-            for(Pair<Path, BackupInfo> info: infos) {
+            for (Pair<Path, BackupInfo> info : infos) {
                 BackupInfo bi = info.getRight();
                 List<UUID> entities = new ArrayList<>(bi.entities());
                 ServerWorld world = it.getWorld(RegistryKey.of(RegistryKeys.WORLD, bi.dim()));
-                if(world == null) {
+                if (world == null) {
                     Backup.LOGGER.error("Backup {} is in world {} that is unsupported!", bi.uid(), bi.dim());
                     continue;
                 }
                 entities.forEach(uid -> {
                     Entity e = world.getEntity(uid);
-                    if(e != null) {
+                    if (e != null) {
                         e.setRemoved(Entity.RemovalReason.KILLED);
                     }
                 });
@@ -120,25 +146,25 @@ public class FabricEntrypoint implements ModInitializer {
                     return this;
                 }
             };
-            for(Pair<Path, BackupInfo> info : infos) {
+            for (Pair<Path, BackupInfo> info : infos) {
                 Backup.LOGGER.info("Now begin to rollback chunks");
                 BackupInfo right = info.getRight();
                 Path left = info.getLeft();
                 Path root = it.getSavePath(WorldSavePath.ROOT);
                 root = DimensionType.getSaveDirectory(RegistryKey.of(RegistryKeys.WORLD, right.dim()), root);
-                try(
-                    RegionMerger region = new RegionMerger(
-                            left.resolve(Backup.REGION_PATH),
-                            root.resolve(Backup.REGION_PATH),
-                            right.begin(),
-                            right.end()
-                    );
-                    RegionMerger entities = new RegionMerger(
-                            left.resolve(Backup.ENTITIES_PATH),
-                            root.resolve(Backup.ENTITIES_PATH),
-                            right.begin(),
-                            right.end()
-                    )
+                try (
+                        RegionMerger region = new RegionMerger(
+                                left.resolve(Backup.REGION_PATH),
+                                root.resolve(Backup.REGION_PATH),
+                                right.begin(),
+                                right.end()
+                        );
+                        RegionMerger entities = new RegionMerger(
+                                left.resolve(Backup.ENTITIES_PATH),
+                                root.resolve(Backup.ENTITIES_PATH),
+                                right.begin(),
+                                right.end()
+                        )
                 ) {
                     storage.backupRestoration(info);
                     try {
@@ -147,51 +173,26 @@ public class FabricEntrypoint implements ModInitializer {
                     } catch (RuntimeException e) {
                         errored = true;
                         Backup.LOGGER.fatal("FAILED TO ROLLBACK CHUNKS!", e);
-                        Backup.LOGGER.fatal("The modifies cannot be restored. Please refer to "+ left +" and replace the ones in /region with them.");
+                        Backup.LOGGER.fatal("The modifies cannot be restored. Please refer to " + left + " and replace the ones in /region with them.");
                         Backup.LOGGER.fatal("Current rollback failed. However, you can still roll back to the same save when you know where the problem came.");
-                        re.addSuppressed(new RuntimeException("failed to restore chunk in backup "+ right, e));
+                        re.addSuppressed(new RuntimeException("failed to restore chunk in backup " + right, e));
                     }
                 } catch (Throwable e) {
                     errored = true;
-                    re.addSuppressed(new RuntimeException("failed to restore chunk in backup "+ right, e));
+                    re.addSuppressed(new RuntimeException("failed to restore chunk in backup " + right, e));
                 } finally {
                     try {
                         storage.close();
-                    } catch (IOException ignored) {}
+                    } catch (IOException ignored) {
+                    }
                     infos.clear();
                 }
             }
-            if(errored) {
+            if (errored) {
                 re.printStackTrace();
             }
         });
     }
-    
-    private static final List<String> helpInfo = List.of(
-            "Inf-Backup version "+Backup.VERSION,
-            "Made by InitAuther97",
-            "Commands:",
-            " - /backup create <beginPosX> <beginPosY> <endPosX> <endPosY> <description> [<dimension>]",
-            "      Used to create a backup. Begin and end pos is the position of the chunk in the world.",
-            "      The dimension argument is default to the dimension you are in.",
-            " - /backup rollback <slot>",
-            "      Add a pending rollback to the wait list. When the server shuts down, it will be applied.",
-            "      Obtain the slot by /backup list",
-            " - /backup list",
-            "      List all the saves created, or to be applied. The number is the slot number.",
-            " - /backup cancel <slot>",
-            "      Cancel the rollback request in the specified slot in the list to apply.",
-            "      Obtain the slot by /backup list",
-            " - /backup cancel all",
-            "      Cancel all the rollback request.",
-            " - /backup delete <slot>",
-            "      Delete the save in the specified slot.",
-            "      After executing, it requires a confirmation to continue.",
-            " - /backup confirm <result: true|false>",
-            "      Decide whether to confirm on the result.",
-            " - /backup confirm info",
-            "      Check out which operation is waiting for confirmation."
-    );
 
     private int printUsage(CommandContext<ServerCommandSource> ctx) {
         ServerCommandSource source = ctx.getSource();
@@ -206,7 +207,7 @@ public class FabricEntrypoint implements ModInitializer {
         try {
             world = DimensionArgumentType.getDimensionArgument(ctx, "dimension");
         } catch (IllegalArgumentException e) {
-            if(entity != null) {
+            if (entity != null) {
                 world = entity.getWorld();
             } else {
                 ctx.getSource().sendMessage(Text.literal("Please specify a dimension.").formatted(Formatting.RED));
@@ -240,11 +241,11 @@ public class FabricEntrypoint implements ModInitializer {
     private int rollback(CommandContext<ServerCommandSource> ctx) {
         int id = IntegerArgumentType.getInteger(ctx, "slot");
         Pair<Path, BackupInfo> info = storage.find(id);
-        if(info == null) {
-            ctx.getSource().sendMessage(Text.literal("Cannot find the backup in slot "+id).formatted(Formatting.RED));
+        if (info == null) {
+            ctx.getSource().sendMessage(Text.literal("Cannot find the backup in slot " + id).formatted(Formatting.RED));
             return 1;
         }
-        if(!infos.add(info)) {
+        if (!infos.add(info)) {
             ctx.getSource().sendMessage(Text.literal("The same backup is already requested to be applied").formatted(Formatting.RED));
             return 1;
         }
@@ -255,19 +256,19 @@ public class FabricEntrypoint implements ModInitializer {
     }
 
     private int list(CommandContext<ServerCommandSource> ctx) {
-        BiConsumer<Integer, Pair<Path, BackupInfo>> printer = (index,inf) -> {
+        BiConsumer<Integer, Pair<Path, BackupInfo>> printer = (index, inf) -> {
             BackupInfo info = inf.getRight();
             ctx.getSource().sendMessage(Text.of(index + ": " + info.toString()));
         };
-        ctx.getSource().sendMessage(Text.of("There are now "+storage.size()+" backups:"));
+        ctx.getSource().sendMessage(Text.of("There are now " + storage.size() + " backups:"));
         storage.forEachIndexed(printer);
-        ctx.getSource().sendMessage(Text.of("There are now "+infos.size()+" backup to be applied:"));
+        ctx.getSource().sendMessage(Text.of("There are now " + infos.size() + " backup to be applied:"));
         Util.forEachIndexed(infos, printer);
         return 0;
     }
 
     private int cancelAll(CommandContext<ServerCommandSource> ctx) {
-        if(!infos.isEmpty()) {
+        if (!infos.isEmpty()) {
             infos.clear();
             ctx.getSource().sendMessage(Text.of("The pending rollback requests are all cancelled."));
             return 0;
@@ -278,7 +279,7 @@ public class FabricEntrypoint implements ModInitializer {
 
     private int cancel(CommandContext<ServerCommandSource> ctx) {
         int id = IntegerArgumentType.getInteger(ctx, "slot");
-        if(!Util.remove(infos, id)) {
+        if (!Util.remove(infos, id)) {
             ctx.getSource().sendMessage(Text.literal("No such rollback request is pending.").formatted(Formatting.RED));
             return 1;
         }
@@ -289,12 +290,12 @@ public class FabricEntrypoint implements ModInitializer {
     private int delete(CommandContext<ServerCommandSource> ctx) {
         int id = IntegerArgumentType.getInteger(ctx, "slot");
         Pair<Path, BackupInfo> pair = storage.find(id);
-        if(pair == null) {
-            ctx.getSource().sendMessage(Text.literal("Cannot find the backup in slot "+id).formatted(Formatting.RED));
+        if (pair == null) {
+            ctx.getSource().sendMessage(Text.literal("Cannot find the backup in slot " + id).formatted(Formatting.RED));
             return 1;
         }
         operationToConfirm.put(ctx.getSource().getName(), new LastOperation.DeleteSave(id, storage));
-        ctx.getSource().sendMessage(Text.literal("Deleting save in slot "+id+", are you sure?").formatted(Formatting.AQUA));
+        ctx.getSource().sendMessage(Text.literal("Deleting save in slot " + id + ", are you sure?").formatted(Formatting.AQUA));
         ctx.getSource().sendMessage(Text.literal("IF YOU ARE SURE, CLICK HERE")
                 .styled(raw -> raw.withColor(Formatting.GREEN).withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/backup confirm true"))));
         ctx.getSource().sendMessage(Text.literal("IF YOU ARE UNWILLING, CLICK HERE")
@@ -305,12 +306,12 @@ public class FabricEntrypoint implements ModInitializer {
     private int confirm(CommandContext<ServerCommandSource> ctx) {
         boolean result = BoolArgumentType.getBool(ctx, "result");
         LastOperation operation = operationToConfirm.remove(ctx.getSource().getName());
-        if(operation == null) {
+        if (operation == null) {
             ctx.getSource().sendMessage(Text.literal("You don't have any operation to confirm").formatted(Formatting.RED));
             return 1;
         }
-        if(result) {
-            if(operation.perform(ctx.getSource())) {
+        if (result) {
+            if (operation.perform(ctx.getSource())) {
                 ctx.getSource().sendMessage(Text.literal("Your last operation was successful.").formatted(Formatting.GREEN));
                 return 0;
             } else {
@@ -326,11 +327,11 @@ public class FabricEntrypoint implements ModInitializer {
 
     private int confirmInfo(CommandContext<ServerCommandSource> ctx) {
         LastOperation operation = operationToConfirm.get(ctx.getSource().getName());
-        if(operation == null) {
+        if (operation == null) {
             ctx.getSource().sendMessage(Text.literal("You don't have any operation to confirm").formatted(Formatting.RED));
             return 1;
         }
-        ctx.getSource().sendMessage(Text.of("Your last operation to confirm: "+ operation.getInformation()));
+        ctx.getSource().sendMessage(Text.of("Your last operation to confirm: " + operation.getInformation()));
         return 0;
     }
 }

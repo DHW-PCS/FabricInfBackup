@@ -1,12 +1,12 @@
 package org.dhwpcs.inf_backup.storage;
 
-import org.dhwpcs.inf_backup.util.RegionPos;
-import org.dhwpcs.inf_backup.util.Util;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.world.dimension.DimensionType;
+import org.dhwpcs.inf_backup.util.RegionPos;
+import org.dhwpcs.inf_backup.util.Util;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -44,11 +44,12 @@ public class BackupStorage implements Closeable {
         var visitor = new FileVisitor<Path>() {
             int depth = 0;
             Path pth;
+
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                Backup.LOGGER.debug("Stepping into {}",dir);
-                Backup.LOGGER.debug("Depth is {}",depth);
-                if(depth < 2) {
+                Backup.LOGGER.debug("Stepping into {}", dir);
+                Backup.LOGGER.debug("Depth is {}", depth);
+                if (depth < 2) {
                     depth++;
                     pth = dir;
                     Backup.LOGGER.debug("Enter.");
@@ -60,8 +61,8 @@ public class BackupStorage implements Closeable {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Backup.LOGGER.debug("Visit: {}" ,file);
-                if(depth == 2 && file.getFileName().toString().equals(ChunkBackup.BACKUP_INFO.getFileName().toString())) {
+                Backup.LOGGER.debug("Visit: {}", file);
+                if (depth == 2 && file.getFileName().toString().equals(ChunkBackup.BACKUP_INFO.getFileName().toString())) {
                     try {
                         Backup.LOGGER.info("Loading config file {}", file);
                         BackupInfo info = BackupInfo.deserialize(Files.readAllLines(file));
@@ -70,19 +71,19 @@ public class BackupStorage implements Closeable {
                         Backup.LOGGER.error("Detected wrong format config file for {}, ignoring", pth);
                         return FileVisitResult.CONTINUE;
                     }
-                } else if(depth == 1) {
-                    switch(file.getFileName().toString()) {
+                } else if (depth == 1) {
+                    switch (file.getFileName().toString()) {
                         case STORAGE_INFO_FILENAME -> {
                             Backup.LOGGER.info("Loading storage info file {}", file);
-                            try(Stream<String> lines = Files.lines(file)) {
+                            try (Stream<String> lines = Files.lines(file)) {
                                 lines.map(UUID::fromString).forEach(lastApplied::add);
                             }
                         }
                         case ENTITIES_FILENAME -> {
                             Backup.LOGGER.info("Loading entities info file {}", file);
-                            try(FileChannel fc = FileChannel.open(file, StandardOpenOption.READ)) {
+                            try (FileChannel fc = FileChannel.open(file, StandardOpenOption.READ)) {
                                 long len = fc.size();
-                                if(len % 8 != 0) {
+                                if (len % 8 != 0) {
                                     Backup.LOGGER.error("Detected wrong format entities info file {}", file);
                                 }
                             }
@@ -111,7 +112,7 @@ public class BackupStorage implements Closeable {
     }
 
     public Pair<Path, BackupInfo> find(int id) {
-        if(id >= allBackups.size()) {
+        if (id >= allBackups.size()) {
             return null;
         }
         return allBackups.get(id);
@@ -119,7 +120,7 @@ public class BackupStorage implements Closeable {
 
     public boolean delete(int id) throws IOException {
         assert id >= 0;
-        if(id < allBackups.size()) {
+        if (id < allBackups.size()) {
             Pair<Path, BackupInfo> pair = allBackups.get(id);
             Files.walkFileTree(pair.getLeft(), new FileVisitor<>() {
                 @Override
@@ -165,7 +166,7 @@ public class BackupStorage implements Closeable {
     protected void create(ChunkBackup backup, List<UUID> entities) throws IOException {
         Backup.LOGGER.info("Backing up the region files");
         Date now = new Date();
-        Path bkRoot = storage.resolve("BACKUP_"+Backup.FORMATTER.format(now));
+        Path bkRoot = storage.resolve("BACKUP_" + Backup.FORMATTER.format(now));
         Path regionRoot = getBackupRegion(bkRoot);
         Path entitiesRoot = getBackupEntities(bkRoot);
         Files.createDirectories(regionRoot);
@@ -175,14 +176,15 @@ public class BackupStorage implements Closeable {
         Path entitiesPth = resolveDim(backup.dim, Backup.ENTITIES_PATH);
         Function<Path, FileVisitor<Path>> copier = path -> new FileVisitor<>() {
             int depth = 0;
+
             {
                 Backup.LOGGER.debug("Walking through:{}", path);
             }
 
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                Backup.LOGGER.debug("Stepping into {}",dir);
-                Backup.LOGGER.debug("Depth is {}",depth);
+                Backup.LOGGER.debug("Stepping into {}", dir);
+                Backup.LOGGER.debug("Depth is {}", depth);
                 if (depth < 1) {
                     depth++;
                     Backup.LOGGER.debug("Enter.");
@@ -196,7 +198,7 @@ public class BackupStorage implements Closeable {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 Path name = file.getFileName();
-                Backup.LOGGER.debug("Visit: {}" ,file);
+                Backup.LOGGER.debug("Visit: {}", file);
                 if (!another.contains(name.toString())) {
                     return FileVisitResult.CONTINUE;
                 }
@@ -237,7 +239,7 @@ public class BackupStorage implements Closeable {
                 .betweenClosed(info.begin(), info.end())
                 .map(RegionPos::getFileName)
                 .collect(Collectors.toSet());
-        Path bkRoot = pair.getLeft().resolve("RESTORATION_"+Backup.FORMATTER.format(now));
+        Path bkRoot = pair.getLeft().resolve("RESTORATION_" + Backup.FORMATTER.format(now));
         Files.createDirectories(bkRoot);
         Path region = resolveDim(info.dim(), Backup.REGION_PATH);
         Path entities = resolveDim(info.dim(), Backup.ENTITIES_PATH);
@@ -251,10 +253,11 @@ public class BackupStorage implements Closeable {
                     throw new RuntimeException(e);
                 }
             }
+
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                Backup.LOGGER.debug("Stepping into {}",dir);
-                Backup.LOGGER.debug("Depth is {}",depth);
+                Backup.LOGGER.debug("Stepping into {}", dir);
+                Backup.LOGGER.debug("Depth is {}", depth);
                 if (depth < 1) {
                     depth++;
                     Backup.LOGGER.debug("Enter.");
@@ -267,7 +270,7 @@ public class BackupStorage implements Closeable {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Backup.LOGGER.debug("Visit: {}" ,file);
+                Backup.LOGGER.debug("Visit: {}", file);
                 if (set.contains(file.getFileName().toString())) {
                     Files.copy(file, path.resolve(file.getFileName()));
                     Backup.LOGGER.info("Copied {}", file.getFileName().toString());
@@ -307,14 +310,14 @@ public class BackupStorage implements Closeable {
 
     private UUID newUUID() {
         UUID result;
-        while(true) {
+        while (true) {
             result = UUID.randomUUID();
-            for(Pair<Path, BackupInfo> pair : allBackups) {
-                if(pair.getRight().uid().equals(result)) {
+            for (Pair<Path, BackupInfo> pair : allBackups) {
+                if (pair.getRight().uid().equals(result)) {
                     result = null;
                 }
             }
-            if(result != null)
+            if (result != null)
                 return result;
         }
     }

@@ -1,13 +1,15 @@
 package org.dhwpcs.inf_backup;
 
-import org.dhwpcs.inf_backup.storage.BackupStorage;
 import net.minecraft.server.command.ServerCommandSource;
+import org.dhwpcs.inf_backup.storage.BackupStorage;
 
 import java.io.IOException;
 
 public interface LastOperation {
     boolean perform(ServerCommandSource source);
+
     String getInformation();
+
     class DeleteSave implements LastOperation {
         private final int id;
         private final BackupStorage storage;
@@ -29,7 +31,7 @@ public interface LastOperation {
 
         @Override
         public String getInformation() {
-            return "DeleteSave "+id;
+            return "DeleteSave " + id;
         }
     }
 }

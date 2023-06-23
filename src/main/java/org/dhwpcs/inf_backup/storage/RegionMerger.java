@@ -23,20 +23,20 @@ public class RegionMerger implements Closeable {
 
     public RegionMerger(Path from, Path to, ChunkPos begin, ChunkPos end) {
         sFrom = StorageIoWorkerAccessor.create(from, false, "Merge-Origin");
-        sTo = StorageIoWorkerAccessor.create(to, false,"Merge-Target");
+        sTo = StorageIoWorkerAccessor.create(to, false, "Merge-Target");
         this.begin = begin;
         this.end = end;
     }
 
     public CompletableFuture<Void> merge() {
-        if(currentFuture != null) {
+        if (currentFuture != null) {
             return currentFuture;
         }
         return currentFuture = CompletableFuture.allOf(ChunkPos.stream(begin, end)
-                .map(pos -> ((StorageIoWorkerAccessor)sFrom).fetchChunkData(pos)
+                .map(pos -> ((StorageIoWorkerAccessor) sFrom).fetchChunkData(pos)
                         .handle((optional, t) -> {
-                            if(optional.isEmpty()) {
-                                if(t == null) {
+                            if (optional.isEmpty()) {
+                                if (t == null) {
                                     Backup.LOGGER.info("Chunk {} does not have any data.", pos);
                                     throw NO_DATA;
                                 } else {
@@ -60,7 +60,7 @@ public class RegionMerger implements Closeable {
 
     @Override
     public void close() throws IOException {
-        if(currentFuture != null) {
+        if (currentFuture != null) {
             currentFuture.join();
         } else {
             (currentFuture = sTo.completeAll(false)).join();

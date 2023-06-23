@@ -5,7 +5,8 @@ import net.minecraft.util.math.ChunkPos;
 
 import java.util.*;
 
-public record BackupInfo(UUID uid, Identifier dim, ChunkPos begin, ChunkPos end, Date date, String description, List<UUID> entities) {
+public record BackupInfo(UUID uid, Identifier dim, ChunkPos begin, ChunkPos end, Date date, String description,
+                         List<UUID> entities) {
     public List<String> serialize() {
         LinkedList<String> list = new LinkedList<>();
         list.add(uid.toString());
@@ -19,7 +20,7 @@ public record BackupInfo(UUID uid, Identifier dim, ChunkPos begin, ChunkPos end,
     }
 
     public static BackupInfo deserialize(List<String> list) throws Exception {
-        if(list.size() < 6) {
+        if (list.size() < 6) {
             throw new Exception("Wrong format");
         }
         Iterator<String> iter = list.iterator();
@@ -31,9 +32,9 @@ public record BackupInfo(UUID uid, Identifier dim, ChunkPos begin, ChunkPos end,
         Date date = new Date(Long.parseLong(iter.next()));
         String description = iter.next();
 
-        List<UUID> uids = new ArrayList<>(list.size()-6);
+        List<UUID> uids = new ArrayList<>(list.size() - 6);
         iter.forEachRemaining(it -> uids.add(UUID.fromString(it)));
-        return new BackupInfo(uid, dim,begin,end,date,description, uids);
+        return new BackupInfo(uid, dim, begin, end, date, description, uids);
     }
 
     @Override

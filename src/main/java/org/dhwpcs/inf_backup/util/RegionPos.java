@@ -12,27 +12,28 @@ import java.util.stream.StreamSupport;
 
 @SuppressWarnings("unused")
 public record RegionPos(int x, int z) {
-    public String getFileName() {
-        return "r."+x+"."+ z +".mca";
+    public static RegionPos get(BlockPos pos) {
+        return new RegionPos(
+                ((int) Math.floor(pos.getX() / 16.0)) >> 5,
+                ((int) Math.floor(pos.getZ() / 16.0)) >> 5
+        );
     }
 
     public static RegionPos get(ChunkPos pos) {
         return new RegionPos(pos.getRegionX(), pos.getRegionZ());
     }
 
-    public static RegionPos get(BlockPos pos) {
+    public static RegionPos get(double px, double pz) {
         return new RegionPos(
-                ((int)Math.floor(pos.getX() / 16.0)) >> 5,
-                ((int)Math.floor(pos.getZ() / 16.0)) >> 5
+                ((int) Math.floor(px / 16)) >> 5,
+                ((int) Math.floor(pz / 16)) >> 5
         );
     }
 
-    public static RegionPos get(double px, double pz) {
-        return new RegionPos(
-                ((int)Math.floor(px / 16)) >> 5,
-                ((int)Math.floor(pz / 16)) >> 5
-        );
+    public String getFileName() {
+        return "r." + x + "." + z + ".mca";
     }
+
     public static Stream<RegionPos> betweenClosed(RegionPos pos1, RegionPos pos2) {
         int i = Math.abs(pos1.x - pos2.x) + 1;
         int j = Math.abs(pos1.z - pos2.z) + 1;
@@ -74,7 +75,7 @@ public record RegionPos(int x, int z) {
         boolean right2 = x > pos2.x;
         boolean up1 = z > pos1.z;
         boolean up2 = z > pos2.z;
-        return right1^right2 && up1^up2;
+        return right1 ^ right2 && up1 ^ up2;
     }
 
     public boolean contains(ChunkPos pos) {
@@ -86,6 +87,6 @@ public record RegionPos(int x, int z) {
     }
 
     public boolean contains(double px, double pz) {
-        return (int)px >> 9 == x && (int)pz >> 9 == z;
+        return (int) px >> 9 == x && (int) pz >> 9 == z;
     }
 }
