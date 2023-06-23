@@ -16,4 +16,6 @@ public class Backup {
     public static final SimpleDateFormat FORMATTER = new SimpleDateFormat("yyyy_MM_dd__HH_mm_ss");
     public static final Comparator<Pair<Path, BackupInfo>> COMPARATOR = Comparator.comparing(it -> it.getRight().date().getTime());
     public static final StackTraceElement[] EMPTY_STACK_TRACE = {};
+
+    public static final String VERSION = "1.1.0";
 }
