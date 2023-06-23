@@ -1,18 +1,14 @@
 package org.dhwpcs.inf_backup.storage;
 
-import org.dhwpcs.inf_backup.mixin.StorageIoWorkerAccessor;
-import org.dhwpcs.inf_backup.util.RegionPos;
-import org.dhwpcs.inf_backup.util.Signal;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.storage.StorageIoWorker;
+import org.dhwpcs.inf_backup.mixin.StorageIoWorkerAccessor;
+import org.dhwpcs.inf_backup.util.Signal;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 public class RegionMerger implements Closeable {
 
@@ -20,24 +16,24 @@ public class RegionMerger implements Closeable {
 
     private final StorageIoWorker sFrom;
     private final StorageIoWorker sTo;
-    private final Map<RegionPos, List<ChunkPos>> chunks;
+    private final ChunkPos begin;
+    private final ChunkPos end;
 
     private CompletableFuture<Void> currentFuture;
 
     public RegionMerger(Path from, Path to, ChunkPos begin, ChunkPos end) {
         sFrom = StorageIoWorkerAccessor.create(from, false, "Merge-Origin");
         sTo = StorageIoWorkerAccessor.create(to, false,"Merge-Target");
-        chunks = ChunkPos.stream(begin, end).parallel().collect(Collectors.groupingBy(RegionPos::get));
+        this.begin = begin;
+        this.end = end;
     }
 
     public CompletableFuture<Void> merge() {
         if(currentFuture != null) {
             return currentFuture;
         }
-        return currentFuture = CompletableFuture.allOf(chunks.entrySet().stream().flatMap(entry -> entry.getValue()
-                .stream()
-                .map(pos -> ((StorageIoWorkerAccessor)sFrom)
-                        .fetchChunkData(pos)
+        return currentFuture = CompletableFuture.allOf(ChunkPos.stream(begin, end)
+                .map(pos -> ((StorageIoWorkerAccessor)sFrom).fetchChunkData(pos)
                         .handle((optional, t) -> {
                             if(optional.isEmpty()) {
                                 if(t == null) {
@@ -59,8 +55,7 @@ public class RegionMerger implements Closeable {
                             }
                             return unused;
                         })
-                )
-            ).toArray(CompletableFuture[]::new));
+                ).toArray(CompletableFuture[]::new));
     }
 
     @Override
