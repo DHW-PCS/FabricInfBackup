@@ -18,7 +18,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "org.dhwpcs.inf_backup.FabricEntrypoint"
+      "org.dhwpcs.infbackup.FabricEntrypoint"
     ]
   },
   "mixins": [
