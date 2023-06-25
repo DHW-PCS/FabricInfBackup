@@ -1,19 +1,26 @@
 package org.dhwpcs.infbackup;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Pair;
-import net.minecraft.util.math.ChunkPos;
 import org.dhwpcs.infbackup.command.CommandRoot;
 import org.dhwpcs.infbackup.config.InfBackupConfig;
+import org.dhwpcs.infbackup.config.StringSerializable;
+import org.dhwpcs.infbackup.config.StringSerializableSerializer;
 import org.dhwpcs.infbackup.event.*;
 import org.dhwpcs.infbackup.storage.Backup;
 import org.dhwpcs.infbackup.storage.BackupInfo;
 import org.dhwpcs.infbackup.storage.BackupStorage;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 public class FabricEntrypoint implements ModInitializer {
 
@@ -21,7 +28,9 @@ public class FabricEntrypoint implements ModInitializer {
     public SortedSet<Pair<Path, BackupInfo>> selectedBackups = new TreeSet<>(Backup.COMPARATOR);
     public Map<String, LastOperation> operationToConfirm = new HashMap<>();
 
-    public Path config_file = Path.of("inf_backup.json");
+    public Path config_file = FabricLoader.getInstance().getConfigDir().resolve("inf_backup.json");
+
+    public Gson gson = new GsonBuilder().registerTypeAdapter(StringSerializable.class, new StringSerializableSerializer()).setPrettyPrinting().create();
 
     public InfBackupConfig config;
 

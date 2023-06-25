@@ -2,7 +2,7 @@ package org.dhwpcs.infbackup.config;
 
 import java.util.Set;
 
-public enum RollbackMethod implements StringSerializable{
+public enum RollbackMethod implements StringSerializable {
     SHUTDOWN,
     INSTANT;
 
@@ -16,7 +16,11 @@ public enum RollbackMethod implements StringSerializable{
         return name();
     }
 
-    public static RollbackMethod deserialize(String datum) {
-        return RollbackMethod.NAMES.contains(datum) ? RollbackMethod.valueOf(datum) : null;
+    static RollbackMethod deserialize(String datum) {
+        return RollbackMethod.valueOf(datum);
+    }
+
+    static {
+        StringSerializable.register(RollbackMethod.class, RollbackMethod::deserialize);
     }
 }

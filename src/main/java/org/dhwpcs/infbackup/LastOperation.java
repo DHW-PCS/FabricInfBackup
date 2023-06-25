@@ -9,9 +9,8 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Pair;
-import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.dimension.DimensionType;
+import org.dhwpcs.infbackup.hack.MixinHacks;
 import org.dhwpcs.infbackup.storage.Backup;
 import org.dhwpcs.infbackup.storage.BackupInfo;
 import org.dhwpcs.infbackup.storage.BackupStorage;
@@ -84,22 +83,19 @@ public interface LastOperation {
             });
             server.saveAll(false, true, true);
             Path left = pair.getLeft();
-            Path root = server.getSavePath(WorldSavePath.ROOT);
-            root = DimensionType.getSaveDirectory(RegistryKey.of(RegistryKeys.WORLD, right.dim()), root);
             try (
                     RegionMerger region = new RegionMerger(
                             left.resolve(Backup.REGION_PATH),
-                            root.resolve(Backup.REGION_PATH),
+                            MixinHacks.getChunkStorage(sw),
                             right.begin(),
                             right.end()
                     );
                     RegionMerger entities = new RegionMerger(
                             left.resolve(Backup.ENTITIES_PATH),
-                            root.resolve(Backup.ENTITIES_PATH),
+                            MixinHacks.getEntityStorage(sw),
                             right.begin(),
                             right.end()
                     );
-                    storage
             ) {
                 storage.backupRestoration(pair);
                 try {

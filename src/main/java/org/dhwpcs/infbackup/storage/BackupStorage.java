@@ -8,24 +8,21 @@ import net.minecraft.world.dimension.DimensionType;
 import org.dhwpcs.infbackup.util.RegionPos;
 import org.dhwpcs.infbackup.util.Util;
 
-import java.io.Closeable;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
-import java.nio.file.*;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-public class BackupStorage implements Closeable {
+public class BackupStorage //implements Closeable
+{
     public final Path storage;
     private final Path worldRoot;
-
-    public static final String STORAGE_INFO_FILENAME = "storage_info.txt";
-    public static final String ENTITIES_FILENAME = "entities";
-    public static final Path STORAGE_INFO = Path.of(STORAGE_INFO_FILENAME);
 
     public BackupStorage(Path storage, Path worldRoot) {
         this.storage = storage;
@@ -38,7 +35,6 @@ public class BackupStorage implements Closeable {
     }
 
     private final List<Pair<Path, BackupInfo>> allBackups = new ArrayList<>();
-    private final Set<UUID> lastApplied = new HashSet<>();
 
     public void init() throws IOException {
         var visitor = new FileVisitor<Path>() {
@@ -60,7 +56,7 @@ public class BackupStorage implements Closeable {
             }
 
             @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                 Backup.LOGGER.debug("Visit: {}", file);
                 if (depth == 2 && file.getFileName().toString().equals(ChunkBackup.BACKUP_INFO.getFileName().toString())) {
                     try {
@@ -71,25 +67,6 @@ public class BackupStorage implements Closeable {
                         Backup.LOGGER.error("Detected wrong format config file for {}, ignoring", pth);
                         return FileVisitResult.CONTINUE;
                     }
-                } else if (depth == 1) {
-                    switch (file.getFileName().toString()) {
-                        case STORAGE_INFO_FILENAME -> {
-                            Backup.LOGGER.info("Loading storage info file {}", file);
-                            try (Stream<String> lines = Files.lines(file)) {
-                                lines.map(UUID::fromString).forEach(lastApplied::add);
-                            }
-                        }
-                        case ENTITIES_FILENAME -> {
-                            Backup.LOGGER.info("Loading entities info file {}", file);
-                            try (FileChannel fc = FileChannel.open(file, StandardOpenOption.READ)) {
-                                long len = fc.size();
-                                if (len % 8 != 0) {
-                                    Backup.LOGGER.error("Detected wrong format entities info file {}", file);
-                                }
-                            }
-                        }
-                    }
-
                 }
                 return FileVisitResult.CONTINUE;
             }
@@ -225,7 +202,7 @@ public class BackupStorage implements Closeable {
         BackupInfo info = new BackupInfo(newUUID(), backup.dim, backup.begin, backup.end, now, backup.description, entities);
         Path bkInfo = bkRoot.resolve(ChunkBackup.BACKUP_INFO.getFileName());
         Files.write(bkInfo, info.serialize());
-        Pair<Path, BackupInfo> result = new Pair<>(regionRoot, info);
+        Pair<Path, BackupInfo> result = new Pair<>(bkRoot, info);
         allBackups.add(result);
         allBackups.sort(Backup.COMPARATOR);
         Backup.LOGGER.info("Backup finished");
@@ -320,10 +297,5 @@ public class BackupStorage implements Closeable {
             if (result != null)
                 return result;
         }
-    }
-
-    @Override
-    public void close() throws IOException {
-        Files.write(storage.resolve(STORAGE_INFO), lastApplied.stream().map(UUID::toString).collect(Collectors.toList()));
     }
 }

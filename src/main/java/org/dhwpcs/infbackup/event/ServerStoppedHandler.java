@@ -43,6 +43,7 @@ public class ServerStoppedHandler implements ServerLifecycleEvents.ServerStopped
             Path left = info.getLeft();
             Path root = server.getSavePath(WorldSavePath.ROOT);
             root = DimensionType.getSaveDirectory(RegistryKey.of(RegistryKeys.WORLD, right.dim()), root);
+            BackupStorage storage = entrypoint.storage;
             try (
                     RegionMerger region = new RegionMerger(
                             left.resolve(Backup.REGION_PATH),
@@ -55,8 +56,7 @@ public class ServerStoppedHandler implements ServerLifecycleEvents.ServerStopped
                             root.resolve(Backup.ENTITIES_PATH),
                             right.begin(),
                             right.end()
-                    );
-                    BackupStorage storage = entrypoint.storage
+                    )
             ) {
                 storage.backupRestoration(info);
                 try {

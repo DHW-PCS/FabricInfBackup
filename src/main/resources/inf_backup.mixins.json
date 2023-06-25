@@ -4,13 +4,14 @@
   "package": "org.dhwpcs.infbackup.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "EntityChunkDataAccessAccessor",
+    "ServerEntityManagerAccessor",
+    "ServerWorldAccessor",
     "StorageIoWorkerAccessor",
-    "MinecraftServerMixin"
   ],
   "client": [
   ],
   "server": [
-    "DedicatedServerWatchdogMixin"
   ],
   "injectors": {
     "defaultRequire": 1

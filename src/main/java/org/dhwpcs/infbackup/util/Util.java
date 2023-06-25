@@ -4,11 +4,9 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import org.apache.logging.log4j.Level;
 import org.dhwpcs.infbackup.storage.Backup;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 @SuppressWarnings("unused")
@@ -70,5 +68,28 @@ public class Util {
         boolean result = right1 ^ right2 && up1 ^ up2;
         Backup.LOGGER.log(Level.INFO, result);
         return result;
+    }
+
+    @SafeVarargs
+    public static<T> Iterable<T> asIterable(T... array) {
+        Objects.requireNonNull(array);
+        return () -> new Iterator<>() {
+
+            private final T[] arr = array.clone();
+            private final int len = arr.length;
+            private int pointer = 0;
+            @Override
+            public boolean hasNext() {
+                return pointer < len;
+            }
+
+            @Override
+            public T next() {
+                if(!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                return arr[pointer++];
+            }
+        };
     }
 }

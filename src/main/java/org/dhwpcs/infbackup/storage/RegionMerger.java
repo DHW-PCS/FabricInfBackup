@@ -1,8 +1,10 @@
 package org.dhwpcs.infbackup.storage;
 
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.storage.StorageIoWorker;
 import org.dhwpcs.infbackup.mixin.StorageIoWorkerAccessor;
+import org.dhwpcs.infbackup.mixin.VersionedChunkStorageAccessor;
 import org.dhwpcs.infbackup.util.Signal;
 
 import java.io.Closeable;
@@ -19,6 +21,8 @@ public class RegionMerger implements Closeable {
     private final ChunkPos begin;
     private final ChunkPos end;
 
+    private boolean mark;
+
     private CompletableFuture<Void> currentFuture;
 
     public RegionMerger(Path from, Path to, ChunkPos begin, ChunkPos end) {
@@ -26,6 +30,15 @@ public class RegionMerger implements Closeable {
         sTo = StorageIoWorkerAccessor.create(to, false, "Merge-Target");
         this.begin = begin;
         this.end = end;
+        mark = true;
+    }
+
+    public RegionMerger(Path from, StorageIoWorker to, ChunkPos begin, ChunkPos end)  {
+        sFrom = StorageIoWorkerAccessor.create(from, false, "Merge-Origin");
+        sTo = to;
+        this.begin = begin;
+        this.end = end;
+        mark = false;
     }
 
     public CompletableFuture<Void> merge() {
@@ -66,7 +79,9 @@ public class RegionMerger implements Closeable {
             (currentFuture = sTo.completeAll(false)).join();
         }
         sFrom.close();
-        sTo.close();
+        if(mark) {
+            sTo.close();
+        }
     }
 
 }

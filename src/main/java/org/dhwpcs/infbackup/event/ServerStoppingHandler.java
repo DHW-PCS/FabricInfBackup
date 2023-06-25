@@ -11,6 +11,8 @@ import org.dhwpcs.infbackup.FabricEntrypoint;
 import org.dhwpcs.infbackup.storage.Backup;
 import org.dhwpcs.infbackup.storage.BackupInfo;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +30,18 @@ public class ServerStoppingHandler implements ServerLifecycleEvents.ServerStoppi
     @Override
     public void onServerStopping(MinecraftServer server) {
         entrypoint.operationToConfirm.clear();
+        if(!Files.exists(entrypoint.config_file)) {
+            try {
+                Files.createFile(entrypoint.config_file);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        try {
+            Files.write(entrypoint.config_file, entrypoint.gson.toJson(entrypoint.config).getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         for (Pair<Path, BackupInfo> info : entrypoint.selectedBackups) {
             BackupInfo bi = info.getRight();
             List<UUID> entities = new ArrayList<>(bi.entities());

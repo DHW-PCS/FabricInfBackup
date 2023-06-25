@@ -36,7 +36,7 @@ public class CommandConfig {
         ServerCommandSource source = ctx.getSource();
         String key = StringArgumentType.getString(ctx, "key");
         String value = StringArgumentType.getString(ctx, "value");
-        if(!entrypoint.config.has(key)) {
+        if(!InfBackupConfig.has(key)) {
             source.sendMessage(Text.literal("No such config:"+key).formatted(Formatting.RED));
             return 1;
         }
@@ -54,17 +54,17 @@ public class CommandConfig {
 
     private CompletableFuture<Suggestions> suggestValue(CommandContext<ServerCommandSource> ctx, SuggestionsBuilder builder) {
         String key = StringArgumentType.getString(ctx, "key");
-        return CommandSource.suggestMatching(InfBackupConfig.CONFIG_ENTRIES.get(key), builder);
+        return CommandSource.suggestMatching(InfBackupConfig.getSuggestions(key, entrypoint), builder);
     }
 
     private int printConfigInfo(CommandContext<ServerCommandSource> ctx) {
         ServerCommandSource source = ctx.getSource();
         String key = StringArgumentType.getString(ctx, "key");
-        if(!entrypoint.config.has(key)) {
+        if(!InfBackupConfig.has(key)) {
             source.sendMessage(Text.literal("No such config:"+key).formatted(Formatting.RED));
             return 1;
         }
-        String[] descriptions = InfBackupConfig.DESCRIPTION.get(key);
+        Iterable<String> descriptions = InfBackupConfig.getDescription(key);
         source.sendMessage(Text.of("Description for config "+key+":"));
         for (String each : descriptions) {
             source.sendMessage(Text.of(" "+each));
@@ -74,6 +74,6 @@ public class CommandConfig {
     }
 
     private CompletableFuture<Suggestions> suggestKey(CommandContext<ServerCommandSource> ctx, SuggestionsBuilder builder) {
-        return CommandSource.suggestMatching(InfBackupConfig.CONFIG_ENTRIES.keySet(), builder);
+        return CommandSource.suggestMatching(InfBackupConfig.ENTRIES, builder);
     }
 }

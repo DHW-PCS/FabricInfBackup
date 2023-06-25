@@ -19,6 +19,7 @@ public class CommandRoot {
     private final CommandCreate create;
     private final CommandConfirm confirm;
     private final CommandCancel cancel;
+    private final CommandConfig config;
 
     public CommandRoot(FabricEntrypoint entrypoint) {
         this.entrypoint = entrypoint;
@@ -28,6 +29,7 @@ public class CommandRoot {
         this.create = new CommandCreate(entrypoint);
         this.list = new CommandList(entrypoint);
         this.delete = new CommandDelete(entrypoint);
+        this.config = new CommandConfig(entrypoint);
     }
     public void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         LiteralArgumentBuilder<ServerCommandSource> root = LiteralArgumentBuilder.<ServerCommandSource>literal("backup")
@@ -39,6 +41,7 @@ public class CommandRoot {
         create.register(root);
         list.register(root);
         delete.register(root);
+        config.register(root);
         dispatcher.register(root);
     }
 
@@ -71,6 +74,10 @@ public class CommandRoot {
             " - /backup confirm <result: true|false>",
             "      Decide whether to confirm on the result.",
             " - /backup confirm info",
-            "      Check out which operation is waiting for confirmation."
+            "      Check out which operation is waiting for confirmation.",
+            " - /backup config <key>",
+            "      Check out the information and the current value of the config entry",
+            " - /backup config <key> <value>",
+            "      Associate the config entry with the specified value"
     );
 }

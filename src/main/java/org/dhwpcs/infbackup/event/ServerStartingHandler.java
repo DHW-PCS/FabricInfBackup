@@ -1,9 +1,9 @@
 package org.dhwpcs.infbackup.event;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
 import org.dhwpcs.infbackup.FabricEntrypoint;
+import org.dhwpcs.infbackup.config.InfBackupConfig;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,15 +19,17 @@ public class ServerStartingHandler implements ServerLifecycleEvents.ServerStarti
 
     @Override
     public void onServerStarting(MinecraftServer server) {
-        Path configDir = FabricLoader.getInstance().getConfigDir();
-        try {
-            Files.createDirectories(configDir);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        Path file = configDir.resolve(entrypoint.config_file);
-        if(!Files.exists(file)) {
-
+        Path configDir = entrypoint.config_file;
+        if(!Files.exists(configDir)) {
+            entrypoint.config = InfBackupConfig.getDefault();
+        } else {
+            String content;
+            try {
+                content = Files.readString(configDir);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            entrypoint.config = entrypoint.gson.fromJson(content, InfBackupConfig.class);
         }
     }
 }

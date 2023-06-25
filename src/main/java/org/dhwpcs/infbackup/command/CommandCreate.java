@@ -48,26 +48,25 @@ public class CommandCreate {
 
     private int createBackup(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
         ServerCommandSource source = ctx.getSource();
-        World world;
+        ServerWorld world;
         Entity entity = source.getEntity();
         try {
             world = DimensionArgumentType.getDimensionArgument(ctx, "dimension");
         } catch (IllegalArgumentException e) {
             if (entity != null) {
-                world = entity.getWorld();
+                world = source.getWorld();
             } else {
                 ctx.getSource().sendMessage(Text.literal("Please specify a dimension.").formatted(Formatting.RED));
                 return 1;
             }
         }
-        assert world instanceof ServerWorld;
-        ServerWorld sw = (ServerWorld) world;
+        assert world != null;
         source.sendMessage(Text.literal("Begin to backup region file").formatted(Formatting.AQUA));
         int bgx = IntegerArgumentType.getInteger(ctx, "beginPosX");
         int bgy = IntegerArgumentType.getInteger(ctx, "beginPosY");
         int edx = IntegerArgumentType.getInteger(ctx, "endPosX");
         int edy = IntegerArgumentType.getInteger(ctx, "endPosY");
-        String desc = StringArgumentType.getString(ctx, "slot");
+        String desc = StringArgumentType.getString(ctx, "description");
         ChunkPos begin = new ChunkPos(bgx, bgy);
         ChunkPos end = new ChunkPos(edx, edy);
         Identifier key = world.getRegistryKey().getValue();
@@ -75,7 +74,7 @@ public class CommandCreate {
         backup.addRegionIn(begin, end);
         world.getServer().saveAll(false, true, true);
         try {
-            backup.backup(sw);
+            backup.backup(world);
         } catch (IOException e) {
             source.sendMessage(Text.literal("Failed to backup region file!").formatted(Formatting.RED));
             return 1;
