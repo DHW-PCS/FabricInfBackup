@@ -6,14 +6,17 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Pair;
 import net.minecraft.util.WorldSavePath;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.dimension.DimensionType;
 import org.dhwpcs.infbackup.FabricEntrypoint;
 import org.dhwpcs.infbackup.storage.Backup;
 import org.dhwpcs.infbackup.storage.BackupInfo;
 import org.dhwpcs.infbackup.storage.BackupStorage;
 import org.dhwpcs.infbackup.storage.RegionMerger;
+import org.dhwpcs.infbackup.util.Util;
 
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
 
@@ -44,18 +47,17 @@ public class ServerStoppedHandler implements ServerLifecycleEvents.ServerStopped
             Path root = server.getSavePath(WorldSavePath.ROOT);
             root = DimensionType.getSaveDirectory(RegistryKey.of(RegistryKeys.WORLD, right.dim()), root);
             BackupStorage storage = entrypoint.storage;
+            Set<ChunkPos> chunks = Util.getBetween(right.begin(), right.end());
             try (
                     RegionMerger region = new RegionMerger(
                             left.resolve(Backup.REGION_PATH),
                             root.resolve(Backup.REGION_PATH),
-                            right.begin(),
-                            right.end()
+                            chunks
                     );
                     RegionMerger entities = new RegionMerger(
                             left.resolve(Backup.ENTITIES_PATH),
                             root.resolve(Backup.ENTITIES_PATH),
-                            right.begin(),
-                            right.end()
+                            chunks
                     )
             ) {
                 storage.backupRestoration(info);

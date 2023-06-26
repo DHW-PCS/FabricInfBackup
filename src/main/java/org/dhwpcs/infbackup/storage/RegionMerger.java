@@ -1,15 +1,14 @@
 package org.dhwpcs.infbackup.storage;
 
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.storage.StorageIoWorker;
 import org.dhwpcs.infbackup.mixin.StorageIoWorkerAccessor;
-import org.dhwpcs.infbackup.mixin.VersionedChunkStorageAccessor;
 import org.dhwpcs.infbackup.util.Signal;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
 public class RegionMerger implements Closeable {
@@ -18,26 +17,23 @@ public class RegionMerger implements Closeable {
 
     private final StorageIoWorker sFrom;
     private final StorageIoWorker sTo;
-    private final ChunkPos begin;
-    private final ChunkPos end;
+    private final Collection<ChunkPos> chunks;
 
-    private boolean mark;
+    private final boolean mark;
 
     private CompletableFuture<Void> currentFuture;
 
-    public RegionMerger(Path from, Path to, ChunkPos begin, ChunkPos end) {
+    public RegionMerger(Path from, Path to, Collection<ChunkPos> chunks) {
         sFrom = StorageIoWorkerAccessor.create(from, false, "Merge-Origin");
         sTo = StorageIoWorkerAccessor.create(to, false, "Merge-Target");
-        this.begin = begin;
-        this.end = end;
+        this.chunks = chunks;
         mark = true;
     }
 
-    public RegionMerger(Path from, StorageIoWorker to, ChunkPos begin, ChunkPos end)  {
+    public RegionMerger(Path from, StorageIoWorker to, Collection<ChunkPos> chunks)  {
         sFrom = StorageIoWorkerAccessor.create(from, false, "Merge-Origin");
         sTo = to;
-        this.begin = begin;
-        this.end = end;
+        this.chunks = chunks;
         mark = false;
     }
 
@@ -45,7 +41,7 @@ public class RegionMerger implements Closeable {
         if (currentFuture != null) {
             return currentFuture;
         }
-        return currentFuture = CompletableFuture.allOf(ChunkPos.stream(begin, end)
+        return currentFuture = CompletableFuture.allOf(chunks.stream()
                 .map(pos -> ((StorageIoWorkerAccessor) sFrom).fetchChunkData(pos)
                         .handle((optional, t) -> {
                             if (optional.isEmpty()) {
