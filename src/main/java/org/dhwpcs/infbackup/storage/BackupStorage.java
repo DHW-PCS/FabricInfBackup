@@ -251,7 +251,9 @@ public class BackupStorage //implements Closeable
             printer.accept(Level.ERROR, String.format("Backup %s is in world %s that is unsupported!", right.uid(), right.dim()));
             return false;
         }
-        List<ChunkPos> chunkToUnload = ChunkPos.stream(right.begin(), right.end()).filter(it -> sw.isChunkLoaded(it.x, it.z)).toList();
+        List<ChunkPos> allChunks = ChunkPos.stream(right.begin(), right.end()).toList();
+        List<ChunkPos> chunkToUnload = new ArrayList<>(allChunks);
+        chunkToUnload.removeIf(it -> !sw.isChunkLoaded(it.x, it.z));
         if(!chunkToUnload.isEmpty()) {
             printer.accept(Level.ERROR, "These chunks are still loaded: "+chunkToUnload);
             return false;
@@ -268,25 +270,26 @@ public class BackupStorage //implements Closeable
                 RegionMerger region = new RegionMerger(
                         left.resolve(Backup.REGION_PATH),
                         MixinHacks.getChunkStorage(sw),
-                        right.begin(),
-                        right.end()
+                        allChunks
                 );
                 RegionMerger entities = new RegionMerger(
                         left.resolve(Backup.ENTITIES_PATH),
                         MixinHacks.getEntityStorage(sw),
-                        right.begin(),
-                        right.end()
+                        allChunks
                 );
                 RegionMerger poi = new RegionMerger(
                         left.resolve(Backup.POI_PATH),
                         MixinHacks.getPoiStorage(sw),
-                        right.begin(),
-                        right.end()
+                        allChunks
                 )
         ) {
             backupRestoration(pair);
             try {
-                CompletableFuture.allOf(region.merge(), entities.merge(), poi.merge()).join();
+                CompletableFuture.allOf(
+                        region.merge(),
+                        entities.merge(),
+                        poi.merge().thenRun(() -> MixinHacks.reloadPoi(sw, allChunks))
+                ).join();
                 printer.accept(Level.INFO, "The restoration is done.");
                 return true;
             } catch (RuntimeException e) {

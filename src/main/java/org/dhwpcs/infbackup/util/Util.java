@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
 public class Util {
@@ -73,8 +74,11 @@ public class Util {
         boolean right2 = chunkX > pos2.x;
         boolean up1 = chunkZ > pos1.z;
         boolean up2 = chunkZ > pos2.z;
-        boolean result = right1 ^ right2 && up1 ^ up2;
-        return result;
+        return right1 ^ right2 && up1 ^ up2;
+    }
+
+    public static Set<ChunkPos> getBetween(ChunkPos pos1, ChunkPos pos2) {
+        return ChunkPos.stream(pos1, pos2).collect(Collectors.toSet());
     }
 
     public static BiConsumer<Level, String> printToSource(ServerCommandSource source) {
