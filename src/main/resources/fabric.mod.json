@@ -14,7 +14,7 @@
   },
 
   "license": "CC0-1.0",
-
+  "icon": "assets/inf_backup/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
