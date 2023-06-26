@@ -1,8 +1,8 @@
 package org.dhwpcs.infbackup.event;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Pair;
 import net.minecraft.util.WorldSavePath;
@@ -42,7 +42,7 @@ public class ServerStoppedHandler implements ServerLifecycleEvents.ServerStopped
             BackupInfo right = info.getRight();
             Path left = info.getLeft();
             Path root = server.getSavePath(WorldSavePath.ROOT);
-            root = DimensionType.getSaveDirectory(RegistryKey.of(RegistryKeys.WORLD, right.dim()), root);
+            root = DimensionType.getSaveDirectory(RegistryKey.of(Registry.WORLD_KEY, right.dim()), root);
             BackupStorage storage = entrypoint.storage;
             try (
                     RegionMerger region = new RegionMerger(
@@ -56,11 +56,17 @@ public class ServerStoppedHandler implements ServerLifecycleEvents.ServerStopped
                             root.resolve(Backup.ENTITIES_PATH),
                             right.begin(),
                             right.end()
+                    );
+                    RegionMerger poi = new RegionMerger(
+                            left.resolve(Backup.POI_PATH),
+                            root.resolve(Backup.POI_PATH),
+                            right.begin(),
+                            right.end()
                     )
             ) {
                 storage.backupRestoration(info);
                 try {
-                    CompletableFuture.allOf(region.merge(), entities.merge()).join();
+                    CompletableFuture.allOf(region.merge(), entities.merge(), poi.merge()).join();
                     Backup.LOGGER.info("The restoration is done. Please restart the server.");
                 } catch (RuntimeException e) {
                     errored = true;

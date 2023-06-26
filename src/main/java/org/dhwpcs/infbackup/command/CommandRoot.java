@@ -47,7 +47,7 @@ public class CommandRoot {
 
     private int printUsage(CommandContext<ServerCommandSource> ctx) {
         ServerCommandSource source = ctx.getSource();
-        helpInfo.forEach(it -> source.sendMessage(Text.literal(it)));
+        helpInfo.forEach(it -> source.sendFeedback(Text.of(it), false));
         return 0;
     }
 

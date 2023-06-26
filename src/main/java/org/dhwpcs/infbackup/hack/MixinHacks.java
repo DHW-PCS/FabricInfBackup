@@ -5,6 +5,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.server.world.ThreadedAnvilChunkStorage;
 import net.minecraft.world.storage.StorageIoWorker;
 import org.dhwpcs.infbackup.mixin.EntityChunkDataAccessAccessor;
+import org.dhwpcs.infbackup.mixin.SerializingRegionBasedStorageAccessor;
 import org.dhwpcs.infbackup.mixin.ServerEntityManagerAccessor;
 import org.dhwpcs.infbackup.mixin.ServerWorldAccessor;
 
@@ -20,5 +21,10 @@ public class MixinHacks {
         ServerChunkManager scm = sw.getChunkManager();
         ThreadedAnvilChunkStorage tacs =  scm.threadedAnvilChunkStorage;
         return (StorageIoWorker) tacs.getWorker();
+    }
+
+    public static StorageIoWorker getPoiStorage(ServerWorld sw) {
+        SerializingRegionBasedStorageAccessor srbsA = (SerializingRegionBasedStorageAccessor) sw.getPointOfInterestStorage();
+        return srbsA.getWorker();
     }
 }

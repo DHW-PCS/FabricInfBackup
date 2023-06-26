@@ -10,11 +10,10 @@ import net.minecraft.command.argument.DimensionArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
+import net.minecraft.text.LiteralText;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.World;
 import org.dhwpcs.infbackup.FabricEntrypoint;
 import org.dhwpcs.infbackup.storage.ChunkBackup;
 
@@ -56,12 +55,12 @@ public class CommandCreate {
             if (entity != null) {
                 world = source.getWorld();
             } else {
-                ctx.getSource().sendMessage(Text.literal("Please specify a dimension.").formatted(Formatting.RED));
+                ctx.getSource().sendFeedback(new LiteralText("Please specify a dimension.").formatted(Formatting.RED), false);
                 return 1;
             }
         }
         assert world != null;
-        source.sendMessage(Text.literal("Begin to backup region file").formatted(Formatting.AQUA));
+        source.sendFeedback(new LiteralText("Begin to backup region file").formatted(Formatting.AQUA), false);
         int bgx = IntegerArgumentType.getInteger(ctx, "beginPosX");
         int bgy = IntegerArgumentType.getInteger(ctx, "beginPosY");
         int edx = IntegerArgumentType.getInteger(ctx, "endPosX");
@@ -76,10 +75,10 @@ public class CommandCreate {
         try {
             backup.backup(world);
         } catch (IOException e) {
-            source.sendMessage(Text.literal("Failed to backup region file!").formatted(Formatting.RED));
+            source.sendFeedback(new LiteralText("Failed to backup region file!").formatted(Formatting.RED), false);
             return 1;
         }
-        source.sendMessage(Text.literal("Successfully backup chunks").formatted(Formatting.GREEN));
+        source.sendFeedback(new LiteralText("Successfully backup chunks").formatted(Formatting.GREEN), false);
         return 0;
     }
 }

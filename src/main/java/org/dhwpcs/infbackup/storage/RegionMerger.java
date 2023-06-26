@@ -1,10 +1,8 @@
 package org.dhwpcs.infbackup.storage;
 
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.storage.StorageIoWorker;
 import org.dhwpcs.infbackup.mixin.StorageIoWorkerAccessor;
-import org.dhwpcs.infbackup.mixin.VersionedChunkStorageAccessor;
 import org.dhwpcs.infbackup.util.Signal;
 
 import java.io.Closeable;
@@ -21,7 +19,7 @@ public class RegionMerger implements Closeable {
     private final ChunkPos begin;
     private final ChunkPos end;
 
-    private boolean mark;
+    private final boolean mark;
 
     private CompletableFuture<Void> currentFuture;
 

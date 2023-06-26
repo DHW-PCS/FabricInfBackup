@@ -27,11 +27,11 @@ public class CommandList {
     private int list(CommandContext<ServerCommandSource> ctx) {
         BiConsumer<Integer, Pair<Path, BackupInfo>> printer = (index, inf) -> {
             BackupInfo info = inf.getRight();
-            ctx.getSource().sendMessage(Text.of(index + ": " + info.toString()));
+            ctx.getSource().sendFeedback(Text.of(index + ": " + info.toString()), false);
         };
-        ctx.getSource().sendMessage(Text.of("There are now " + entrypoint.storage.size() + " backups:"));
+        ctx.getSource().sendFeedback(Text.of("There are now " + entrypoint.storage.size() + " backups:"), false);
         entrypoint.storage.forEachIndexed(printer);
-        ctx.getSource().sendMessage(Text.of("There are now " + entrypoint.selectedBackups.size() + " backup to be applied:"));
+        ctx.getSource().sendFeedback(Text.of("There are now " + entrypoint.selectedBackups.size() + " backup to be applied:"), false);
         Util.forEachIndexed(entrypoint.selectedBackups, printer);
         return 0;
     }

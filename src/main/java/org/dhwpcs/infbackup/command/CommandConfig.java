@@ -8,6 +8,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.command.CommandSource;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.dhwpcs.infbackup.FabricEntrypoint;
@@ -37,17 +38,18 @@ public class CommandConfig {
         String key = StringArgumentType.getString(ctx, "key");
         String value = StringArgumentType.getString(ctx, "value");
         if(!InfBackupConfig.has(key)) {
-            source.sendMessage(Text.literal("No such config:"+key).formatted(Formatting.RED));
+            source.sendFeedback(new LiteralText("No such config:"+key).formatted(Formatting.RED), false);
             return 1;
         }
         if(!entrypoint.config.set(key, value)) {
-            source.sendMessage(Text.literal("Invalid value:"+ value).formatted(Formatting.RED));
+            source.sendFeedback(new LiteralText("Invalid value:"+ value).formatted(Formatting.RED), false);
             return 1;
         }
-        source.sendMessage(Text.literal("Successfully set config ").formatted(Formatting.GREEN)
-                .append(Text.literal(key).formatted(Formatting.AQUA))
-                .append(Text.literal(" to ").formatted(Formatting.GREEN))
-                .append(Text.literal(value).formatted(Formatting.AQUA))
+        source.sendFeedback(new LiteralText("Successfully set config ").formatted(Formatting.GREEN)
+                .append(new LiteralText(key).formatted(Formatting.AQUA))
+                .append(new LiteralText(" to ").formatted(Formatting.GREEN))
+                .append(new LiteralText(value).formatted(Formatting.AQUA)),
+                false
         );
         return 0;
     }
@@ -61,15 +63,15 @@ public class CommandConfig {
         ServerCommandSource source = ctx.getSource();
         String key = StringArgumentType.getString(ctx, "key");
         if(!InfBackupConfig.has(key)) {
-            source.sendMessage(Text.literal("No such config:"+key).formatted(Formatting.RED));
+            source.sendFeedback(new LiteralText("No such config:"+key).formatted(Formatting.RED), false);
             return 1;
         }
         Iterable<String> descriptions = InfBackupConfig.getDescription(key);
-        source.sendMessage(Text.of("Description for config "+key+":"));
+        source.sendFeedback(Text.of("Description for config "+key+":"), false);
         for (String each : descriptions) {
-            source.sendMessage(Text.of(" "+each));
+            source.sendFeedback(Text.of(" "+each), false);
         }
-        source.sendMessage(Text.of("Current value:"+entrypoint.config.get(key).serialize()));
+        source.sendFeedback(Text.of("Current value:"+entrypoint.config.get(key).serialize()), false);
         return 0;
     }
 

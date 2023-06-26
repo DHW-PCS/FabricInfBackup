@@ -5,6 +5,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.dhwpcs.infbackup.FabricEntrypoint;
@@ -30,20 +31,20 @@ public class CommandConfirm {
         boolean result = BoolArgumentType.getBool(ctx, "result");
         LastOperation operation = entrypoint.operationToConfirm.remove(ctx.getSource().getName());
         if (operation == null) {
-            ctx.getSource().sendMessage(Text.literal("You don't have any operation to confirm").formatted(Formatting.RED));
+            ctx.getSource().sendFeedback(new LiteralText("You don't have any operation to confirm").formatted(Formatting.RED), false);
             return 1;
         }
         if (result) {
             if (operation.perform(ctx.getSource())) {
-                ctx.getSource().sendMessage(Text.literal("Your last operation was successful.").formatted(Formatting.GREEN));
+                ctx.getSource().sendFeedback(new LiteralText("Your last operation was successful.").formatted(Formatting.GREEN), false);
                 return 0;
             } else {
-                ctx.getSource().sendMessage(Text.literal("Your last operation was failed.").formatted(Formatting.RED));
+                ctx.getSource().sendFeedback(new LiteralText("Your last operation was failed.").formatted(Formatting.RED), false);
                 return 1;
             }
         } else {
             entrypoint.operationToConfirm.remove(ctx.getSource().getName());
-            ctx.getSource().sendMessage(Text.literal("You have cancelled your last operation.").formatted(Formatting.GREEN));
+            ctx.getSource().sendFeedback(new LiteralText("You have cancelled your last operation.").formatted(Formatting.GREEN), false);
             return 0;
         }
     }
@@ -51,10 +52,10 @@ public class CommandConfirm {
     private int confirmInfo(CommandContext<ServerCommandSource> ctx) {
         LastOperation operation = entrypoint.operationToConfirm.get(ctx.getSource().getName());
         if (operation == null) {
-            ctx.getSource().sendMessage(Text.literal("You don't have any operation to confirm").formatted(Formatting.RED));
+            ctx.getSource().sendFeedback(new LiteralText("You don't have any operation to confirm").formatted(Formatting.RED), false);
             return 1;
         }
-        ctx.getSource().sendMessage(Text.of("Your last operation to confirm: " + operation.getInformation()));
+        ctx.getSource().sendFeedback(Text.of("Your last operation to confirm: " + operation.getInformation()), false);
         return 0;
     }
 }

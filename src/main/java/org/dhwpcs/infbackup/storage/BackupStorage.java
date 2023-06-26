@@ -1,10 +1,16 @@
 package org.dhwpcs.infbackup.storage;
 
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.entity.Entity;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.dimension.DimensionType;
+import org.apache.logging.log4j.Level;
+import org.dhwpcs.infbackup.hack.MixinHacks;
 import org.dhwpcs.infbackup.util.RegionPos;
 import org.dhwpcs.infbackup.util.Util;
 
@@ -15,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -43,21 +50,16 @@ public class BackupStorage //implements Closeable
 
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                Backup.LOGGER.debug("Stepping into {}", dir);
-                Backup.LOGGER.debug("Depth is {}", depth);
                 if (depth < 2) {
                     depth++;
                     pth = dir;
-                    Backup.LOGGER.debug("Enter.");
                     return FileVisitResult.CONTINUE;
                 }
-                Backup.LOGGER.debug("Skip.");
                 return FileVisitResult.SKIP_SUBTREE;
             }
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                Backup.LOGGER.debug("Visit: {}", file);
                 if (depth == 2 && file.getFileName().toString().equals(ChunkBackup.BACKUP_INFO.getFileName().toString())) {
                     try {
                         Backup.LOGGER.info("Loading config file {}", file);
@@ -80,7 +82,6 @@ public class BackupStorage //implements Closeable
             @Override
             public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
                 --depth;
-                Backup.LOGGER.debug("Stepping out of {}", dir);
                 return FileVisitResult.CONTINUE;
             }
         };
@@ -99,30 +100,7 @@ public class BackupStorage //implements Closeable
         assert id >= 0;
         if (id < allBackups.size()) {
             Pair<Path, BackupInfo> pair = allBackups.get(id);
-            Files.walkFileTree(pair.getLeft(), new FileVisitor<>() {
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.delete(file);
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                    exc.printStackTrace();
-                    return FileVisitResult.TERMINATE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    Files.delete(dir);
-                    return FileVisitResult.CONTINUE;
-                }
-            });
+            Files.walkFileTree(pair.getLeft(), Util.deleteDirectory());
             allBackups.remove(id);
             return true;
         } else return false;
@@ -146,28 +124,22 @@ public class BackupStorage //implements Closeable
         Path bkRoot = storage.resolve("BACKUP_" + Backup.FORMATTER.format(now));
         Path regionRoot = getBackupRegion(bkRoot);
         Path entitiesRoot = getBackupEntities(bkRoot);
+        Path poiRoot = getBackupPoi(bkRoot);
         Files.createDirectories(regionRoot);
         Files.createDirectories(entitiesRoot);
         Set<String> another = backup.affectedRegions.stream().map(RegionPos::getFileName).collect(Collectors.toSet());
         Path regionPth = resolveDim(backup.dim, Backup.REGION_PATH);
         Path entitiesPth = resolveDim(backup.dim, Backup.ENTITIES_PATH);
+        Path poiPth = resolveDim(backup.dim, Backup.POI_PATH);
         Function<Path, FileVisitor<Path>> copier = path -> new FileVisitor<>() {
             int depth = 0;
 
-            {
-                Backup.LOGGER.debug("Walking through:{}", path);
-            }
-
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                Backup.LOGGER.debug("Stepping into {}", dir);
-                Backup.LOGGER.debug("Depth is {}", depth);
                 if (depth < 1) {
                     depth++;
-                    Backup.LOGGER.debug("Enter.");
                     return FileVisitResult.CONTINUE;
                 } else {
-                    Backup.LOGGER.debug("Skip.");
                     return FileVisitResult.SKIP_SUBTREE;
                 }
             }
@@ -175,12 +147,10 @@ public class BackupStorage //implements Closeable
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 Path name = file.getFileName();
-                Backup.LOGGER.debug("Visit: {}", file);
                 if (!another.contains(name.toString())) {
                     return FileVisitResult.CONTINUE;
                 }
                 Files.copy(file, path.resolve(name));
-                Backup.LOGGER.info("Copied {}", file.getFileName().toString());
                 return FileVisitResult.CONTINUE;
             }
 
@@ -193,12 +163,12 @@ public class BackupStorage //implements Closeable
             @Override
             public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
                 --depth;
-                Backup.LOGGER.debug("Stepping out of {}", dir);
                 return FileVisitResult.CONTINUE;
             }
         };
         Files.walkFileTree(regionPth, copier.apply(regionRoot));
         Files.walkFileTree(entitiesPth, copier.apply(entitiesRoot));
+        Files.walkFileTree(poiPth, copier.apply(poiRoot));
         BackupInfo info = new BackupInfo(newUUID(), backup.dim, backup.begin, backup.end, now, backup.description, entities);
         Path bkInfo = bkRoot.resolve(ChunkBackup.BACKUP_INFO.getFileName());
         Files.write(bkInfo, info.serialize());
@@ -220,6 +190,7 @@ public class BackupStorage //implements Closeable
         Files.createDirectories(bkRoot);
         Path region = resolveDim(info.dim(), Backup.REGION_PATH);
         Path entities = resolveDim(info.dim(), Backup.ENTITIES_PATH);
+        Path poi = resolveDim(info.dim(), Backup.POI_PATH);
         Function<Path, FileVisitor<Path>> visitor = path -> new FileVisitor<>() {
             int depth = 0;
 
@@ -233,21 +204,16 @@ public class BackupStorage //implements Closeable
 
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                Backup.LOGGER.debug("Stepping into {}", dir);
-                Backup.LOGGER.debug("Depth is {}", depth);
                 if (depth < 1) {
                     depth++;
-                    Backup.LOGGER.debug("Enter.");
                     return FileVisitResult.CONTINUE;
                 } else {
-                    Backup.LOGGER.debug("Skip.");
                     return FileVisitResult.SKIP_SUBTREE;
                 }
             }
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Backup.LOGGER.debug("Visit: {}", file);
                 if (set.contains(file.getFileName().toString())) {
                     Files.copy(file, path.resolve(file.getFileName()));
                     Backup.LOGGER.info("Copied {}", file.getFileName().toString());
@@ -264,27 +230,92 @@ public class BackupStorage //implements Closeable
             @Override
             public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
                 depth--;
-                Backup.LOGGER.debug("Stepping out of {}", dir);
                 return FileVisitResult.CONTINUE;
             }
         };
         Files.walkFileTree(region, visitor.apply(getBackupRegion(bkRoot)));
         Files.walkFileTree(entities, visitor.apply(getBackupEntities(bkRoot)));
+        Files.walkFileTree(poi, visitor.apply(getBackupPoi(bkRoot)));
         Backup.LOGGER.info("Backup finished");
     }
 
-    private Path resolveDim(Identifier dimension, Path resolve) {
-        return DimensionType.getSaveDirectory(RegistryKey.of(RegistryKeys.WORLD, dimension), worldRoot).resolve(resolve);
+    public boolean doMergeDynamic(
+            int id,
+            MinecraftServer server,
+            BiConsumer<Level, String> printer
+    ) {
+        Pair<Path, BackupInfo> pair = find(id);
+        BackupInfo right = pair.getRight();
+        ServerWorld sw = server.getWorld(RegistryKey.of(Registry.WORLD_KEY, right.dim()));
+        if (sw == null) {
+            printer.accept(Level.ERROR, String.format("Backup %s is in world %s that is unsupported!", right.uid(), right.dim()));
+            return false;
+        }
+        List<ChunkPos> chunkToUnload = ChunkPos.stream(right.begin(), right.end()).filter(it -> sw.isChunkLoaded(it.x, it.z)).toList();
+        if(!chunkToUnload.isEmpty()) {
+            printer.accept(Level.ERROR, "These chunks are still loaded: "+chunkToUnload);
+            return false;
+        }
+        right.entities().forEach(uid -> {
+            Entity e = sw.getEntity(uid);
+            if (e != null) {
+                e.setRemoved(Entity.RemovalReason.KILLED);
+            }
+        });
+        server.saveAll(false, true, true);
+        Path left = pair.getLeft();
+        try (
+                RegionMerger region = new RegionMerger(
+                        left.resolve(Backup.REGION_PATH),
+                        MixinHacks.getChunkStorage(sw),
+                        right.begin(),
+                        right.end()
+                );
+                RegionMerger entities = new RegionMerger(
+                        left.resolve(Backup.ENTITIES_PATH),
+                        MixinHacks.getEntityStorage(sw),
+                        right.begin(),
+                        right.end()
+                );
+                RegionMerger poi = new RegionMerger(
+                        left.resolve(Backup.POI_PATH),
+                        MixinHacks.getPoiStorage(sw),
+                        right.begin(),
+                        right.end()
+                )
+        ) {
+            backupRestoration(pair);
+            try {
+                CompletableFuture.allOf(region.merge(), entities.merge(), poi.merge()).join();
+                printer.accept(Level.INFO, "The restoration is done.");
+                return true;
+            } catch (RuntimeException e) {
+                printer.accept(Level.FATAL, "FAILED TO ROLLBACK CHUNKS!");
+                printer.accept(Level.FATAL, "The modifies cannot be restored. Please refer to " + left + " and replace the ones in /region with them.");
+                printer.accept(Level.ERROR, "Current rollback failed. However, you can still roll back to the same save when you know where the problem came.");
+                return false;
+            }
+        } catch (Throwable e) {
+            printer.accept(Level.ERROR, "We cannot roll back at this moment. Backing up of current file failed.");
+            return false;
+        }
     }
 
-    private Path getBackupRegion(Path bkRoot) {
+    private Path resolveDim(Identifier dimension, Path resolve) {
+        return DimensionType.getSaveDirectory(RegistryKey.of(Registry.WORLD_KEY, dimension), worldRoot).resolve(resolve);
+    }
+
+    private static Path getBackupRegion(Path bkRoot) {
         return bkRoot.resolve(Backup.REGION_PATH);
     }
 
-    private Path getBackupEntities(Path bkRoot) {
+    private static Path getBackupEntities(Path bkRoot) {
         return bkRoot.resolve(Backup.ENTITIES_PATH);
     }
 
+    private static Path getBackupPoi(Path bkRoot) {
+        return bkRoot.resolve(Backup.POI_PATH);
+    }
     private UUID newUUID() {
         UUID result;
         while (true) {

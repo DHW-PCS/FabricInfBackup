@@ -5,6 +5,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.dhwpcs.infbackup.FabricEntrypoint;
@@ -28,20 +29,20 @@ public class CommandCancel {
     private int cancelAll(CommandContext<ServerCommandSource> ctx) {
         if (!entrypoint.selectedBackups.isEmpty()) {
             entrypoint.selectedBackups.clear();
-            ctx.getSource().sendMessage(Text.of("The pending rollback requests are all cancelled."));
+            ctx.getSource().sendFeedback(Text.of("The pending rollback requests are all cancelled."), false);
             return 0;
         }
-        ctx.getSource().sendMessage(Text.literal("No rollback request is pending.").formatted(Formatting.RED));
+        ctx.getSource().sendFeedback(new LiteralText("No rollback request is pending.").formatted(Formatting.RED), false);
         return 1;
     }
 
     private int cancel(CommandContext<ServerCommandSource> ctx) {
         int id = IntegerArgumentType.getInteger(ctx, "slot");
         if (!Util.remove(entrypoint.selectedBackups, id)) {
-            ctx.getSource().sendMessage(Text.literal("No such rollback request is pending.").formatted(Formatting.RED));
+            ctx.getSource().sendFeedback(new LiteralText("No such rollback request is pending.").formatted(Formatting.RED), false);
             return 1;
         }
-        ctx.getSource().sendMessage(Text.of("The pending rollback request is cancelled."));
+        ctx.getSource().sendFeedback(Text.of("The pending rollback request is cancelled."), false);
         return 0;
     }
 }

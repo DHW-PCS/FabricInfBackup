@@ -2,8 +2,8 @@ package org.dhwpcs.infbackup.event;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.entity.Entity;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Pair;
@@ -45,7 +45,7 @@ public class ServerStoppingHandler implements ServerLifecycleEvents.ServerStoppi
         for (Pair<Path, BackupInfo> info : entrypoint.selectedBackups) {
             BackupInfo bi = info.getRight();
             List<UUID> entities = new ArrayList<>(bi.entities());
-            ServerWorld world = server.getWorld(RegistryKey.of(RegistryKeys.WORLD, bi.dim()));
+            ServerWorld world = server.getWorld(RegistryKey.of(Registry.WORLD_KEY, bi.dim()));
             if (world == null) {
                 Backup.LOGGER.error("Backup {} is in world {} that is unsupported!", bi.uid(), bi.dim());
                 continue;
