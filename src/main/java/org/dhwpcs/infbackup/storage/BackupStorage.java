@@ -127,6 +127,7 @@ public class BackupStorage //implements Closeable
         Path poiRoot = getBackupPoi(bkRoot);
         Files.createDirectories(regionRoot);
         Files.createDirectories(entitiesRoot);
+        Files.createDirectories(poiRoot);
         Set<String> another = backup.affectedRegions.stream().map(RegionPos::getFileName).collect(Collectors.toSet());
         Path regionPth = resolveDim(backup.dim, Backup.REGION_PATH);
         Path entitiesPth = resolveDim(backup.dim, Backup.ENTITIES_PATH);
