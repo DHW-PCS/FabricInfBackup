@@ -43,8 +43,8 @@ public class RegionMerger implements Closeable {
         }
         return currentFuture = CompletableFuture.allOf(chunks.stream()
                 .map(pos -> ((StorageIoWorkerAccessor) sFrom).fetchChunkData(pos)
-                        .handle((optional, t) -> {
-                            if (optional.isEmpty()) {
+                        .handle((compound, t) -> {
+                            if (compound == null) {
                                 if (t == null) {
                                     Backup.LOGGER.info("Chunk {} does not have any data.", pos);
                                     throw NO_DATA;
@@ -52,7 +52,7 @@ public class RegionMerger implements Closeable {
                                     throw new RuntimeException(t);
                                 }
                             } else {
-                                return optional.get();
+                                return compound;
                             }
                         })
                         .thenCompose(compound -> sTo.setResult(pos, compound))

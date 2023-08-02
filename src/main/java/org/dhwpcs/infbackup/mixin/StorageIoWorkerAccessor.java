@@ -7,7 +7,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.nio.file.Path;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings("unused")
@@ -19,5 +18,5 @@ public interface StorageIoWorkerAccessor {
     }
 
     @Invoker("readChunkData")
-    CompletableFuture<Optional<NbtCompound>> fetchChunkData(ChunkPos pos);
+    CompletableFuture<NbtCompound> fetchChunkData(ChunkPos pos);
 }
